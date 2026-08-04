@@ -4,7 +4,7 @@ pipeline {
     environment {
         AWS_REGION = 'ap-south-1'
         ECR_REPO = '935140613303.dkr.ecr.ap-south-1.amazonaws.com/react-app'
-        IMAGE_TAG = 'latest'
+        IMAGE_TAG = "${BUILD_NUMBER}"
     }
 
     stages {
