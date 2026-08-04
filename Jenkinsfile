@@ -1,10 +1,11 @@
 pipeline {
     agent any
-    
+
     options {
-    timestamps()
-    buildDiscarder(logRotator(numToKeepStr: '10'))
+        timestamps()
+        buildDiscarder(logRotator(numToKeepStr: '10'))
     }
+
     environment {
         AWS_REGION = 'ap-south-1'
         ECR_REPO = '935140613303.dkr.ecr.ap-south-1.amazonaws.com/react-app'
@@ -21,7 +22,7 @@ pipeline {
 
         stage('Install Dependencies') {
             steps {
-                sh 'npm install'
+                sh 'npm ci'
             }
         }
 
@@ -33,7 +34,9 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t react-app:latest .'
+                sh '''
+                docker build -t react-app:${IMAGE_TAG} .
+                '''
             }
         }
 
@@ -49,8 +52,8 @@ pipeline {
         stage('Push Image') {
             steps {
                 sh '''
-                docker tag react-app:latest $ECR_REPO:$IMAGE_TAG
-                docker push $ECR_REPO:$IMAGE_TAG
+                docker tag react-app:${IMAGE_TAG} $ECR_REPO:${IMAGE_TAG}
+                docker push $ECR_REPO:${IMAGE_TAG}
                 '''
             }
         }
@@ -58,24 +61,26 @@ pipeline {
         stage('Deploy to EKS') {
             steps {
                 sh '''
-                kubectl rollout restart deployment/react-app
+                kubectl set image deployment/react-app \
+                react-app=$ECR_REPO:${IMAGE_TAG}
+
                 kubectl rollout status deployment/react-app
                 '''
             }
         }
     }
-}
-post {
 
-    success {
-        echo "Deployment Successful!"
-    }
+    post {
+        success {
+            echo 'Deployment Successful!'
+        }
 
-    failure {
-        echo "Deployment Failed!"
-    }
+        failure {
+            echo 'Pipeline Failed!'
+        }
 
-    always {
-        sh 'docker image prune -f'
+        always {
+            sh 'docker image prune -f'
+        }
     }
 }
