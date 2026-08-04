@@ -1,6 +1,10 @@
 pipeline {
     agent any
-
+    
+    options {
+    timestamps()
+    buildDiscarder(logRotator(numToKeepStr: '10'))
+    }
     environment {
         AWS_REGION = 'ap-south-1'
         ECR_REPO = '935140613303.dkr.ecr.ap-south-1.amazonaws.com/react-app'
@@ -59,5 +63,19 @@ pipeline {
                 '''
             }
         }
+    }
+}
+post {
+
+    success {
+        echo "Deployment Successful!"
+    }
+
+    failure {
+        echo "Deployment Failed!"
+    }
+
+    always {
+        sh 'docker image prune -f'
     }
 }
